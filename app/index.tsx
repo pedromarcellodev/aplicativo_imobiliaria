@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Text,
   View,
@@ -7,13 +7,49 @@ import {
   TextInput,
   Dimensions,
   Pressable,
+  Alert,
 } from "react-native";
 import logo from "../assets/images/logo.png";
 import { colors } from "../constants/Colors";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 
 export default function Index() {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string | null>(null); 
+  const router = useRouter();
+
+  const validateEmail = (email: string): boolean => {  
+    const emailPattern = /\S+@\S+\.\S+/;
+    return emailPattern.test(email);
+  };
+
+  const handleLogin = () => {
+    // Validação básica do email e senha
+    if (!validateEmail(email)) {
+      setError("Digite um email válido."); 
+      return;
+    }
+    if (password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    // Dados para simulação
+    const mockEmail = "usuario@exemplo.com";
+    const mockPassword = "senha123";
+
+    // Verificação de credenciais
+    if (email === mockEmail && password === mockPassword) {
+      setError(null); 
+      Alert.alert("Login bem-sucedido!");
+      router.push("/(tabs)"); 
+    } else {
+      setError("Credenciais inválidas. Verifique e tente novamente.");
+    }
+  };
+
   return (
     <View style={style.container}>
       <View style={style.boxTop}>
@@ -24,24 +60,35 @@ export default function Index() {
       </View>
       <View style={style.boxMid}>
         <View style={style.boxInput}>
-          <TextInput style={style.input} placeholder="Digite seu e-mail" />
+          <TextInput
+            style={style.input}
+            placeholder="Digite seu e-mail"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+          />
           <MaterialIcons name="email" size={20} color={colors.escuro} />
         </View>
         <View style={style.boxInput}>
-          <TextInput style={style.input} placeholder="Digite sua senha" />
+          <TextInput
+            style={style.input}
+            placeholder="Digite sua senha"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
           <MaterialIcons name="lock" size={20} color={colors.escuro} />
         </View>
+        {error && <Text style={style.errorText}>{error}</Text>}
       </View>
       <View style={style.boxBottom}>
         <Link href="/recover" asChild>
           <Text style={style.text}> Esqueceu a senha? </Text>
         </Link>
         <View>
-          <Link href="/(tabs)" asChild>
-            <Pressable style={style.btn}>
-              <Text style={style.btntext}>Entrar</Text>
-            </Pressable>
-          </Link>
+          <Pressable style={style.btn} onPress={handleLogin}>
+            <Text style={style.btntext}>Entrar</Text>
+          </Pressable>
         </View>
         <Text style={style.text2}>
           Ainda não possui uma conta?{" "}
@@ -53,10 +100,13 @@ export default function Index() {
     </View>
   );
 }
+
 const style = StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
+    flex: 1,
+    backgroundColor: "#fff",
   },
   boxTop: {
     height: 200,
@@ -81,7 +131,6 @@ const style = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-
   logo: {
     marginTop: 200,
     width: 300,
@@ -95,19 +144,12 @@ const style = StyleSheet.create({
     textShadowRadius: 4,
     fontSize: 30,
   },
-
-  // CONTEUDO DO MEIO
   boxMid: {
     height: 200,
     width: "100%",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 150,
-  },
-
-  titleInput: {
-    marginLeft: 5,
-    marginTop: 20,
   },
   boxInput: {
     width: "80%",
@@ -126,19 +168,20 @@ const style = StyleSheet.create({
     width: "100%",
     borderRadius: 40,
   },
-
-  // FINAL
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginTop: 10,
+  },
   boxBottom: {
     height: Dimensions.get("window").height / 3,
     width: "100%",
   },
-
   text: {
     fontWeight: "bold",
     textAlign: "right",
     paddingHorizontal: 40,
   },
-
   btn: {
     backgroundColor: colors.escuro,
     width: "50%",

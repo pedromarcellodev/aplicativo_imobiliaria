@@ -89,7 +89,7 @@ const style = StyleSheet.create({
     fontSize: 30,
   },
 
-  // CONTEUDO DO MEIO
+  
   boxMid: {
     height: 200,
     width: "100%",
@@ -120,7 +120,7 @@ const style = StyleSheet.create({
     borderRadius: 40,
   },
 
-  // FINAL
+  
   boxBottom: {
     height: Dimensions.get("window").height / 3,
     width: "100%",
