@@ -1,208 +1,165 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  useWindowDimensions,
-  ScrollView,
-  Linking,
-} from "react-native";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import { colors } from "../../constants/Colors";
-import { Link, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from 'react';
+import { View, Text, Image, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Linking } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as SQLite from 'expo-sqlite';
+import { colors } from '../../constants/Colors';
 
-//video
-const VIDEO_HEIGHT = 210;
-const SCREEN_SPACE = 24;
-import YoutubeIframe from "react-native-youtube-iframe";
+interface Imovel {
+  id: number;
+  title: string;
+  price: number;
+  local: string;
+  info: string;
+  image: any;
+}
 
-export default function House() {
+export default function ImovelDetalhes() {
+  const [imovel, setImovel] = useState<Imovel | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  //id image title price local details video
   const { id } = useLocalSearchParams();
-  const { title } = useLocalSearchParams();
-  const { price } = useLocalSearchParams();
-  const { local } = useLocalSearchParams();  
-  const { info } = useLocalSearchParams();
-  const { image } = useLocalSearchParams();
-  const { video } = useLocalSearchParams();
 
-  //video
-  const [videoReady, setVideoReady] = useState(false);
-  const { width } = useWindowDimensions();
-  const VIDEO_WIDTH = width - SCREEN_SPACE * 2;
+  useEffect(() => {
+    const loadDatabase = async () => {
+      const db = await SQLite.openDatabaseAsync('meudb.db');
 
-  // whatsapp
-  const sendWhatsappText = () =>{
-    const phoneNumber = '5531999999999'; 
-    const text = "Olá estou interessado(a) no Imóvel:";
+      if (id) {
+        await fetchImovelDetails(db, parseInt(id as string));
+      }
+    };
 
-    const url = `whatsapp://send?phone=${phoneNumber}&text=${text}`;
+    loadDatabase();
+  }, [id]);
 
+  const fetchImovelDetails = async (db: any, imovelId: number) => {
     try {
-      Linking.openURL(url);
-
-      console.log('WhatsApp opened successfully on Android');
+      const rows = await db.getAllAsync('SELECT * FROM tabela_imoveis WHERE id = ?', [imovelId]);
+      if (rows.length > 0) {
+        const row = rows[0];
+        const loadedImovel: Imovel = {
+          id: row.id,
+          title: row.nome,
+          price: row.preco,
+          local: row.endereco,
+          info: row.descricao,
+          image: imageMap[row.id] || null,
+        };
+        setImovel(loadedImovel);
+      }
     } catch (error) {
-      console.error('Error opening WhatsApp on Android:', error);
+      console.error("Erro ao buscar os detalhes do imóvel:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  //button Fav
-  const [isActive, setIsActive] = useState(false);
+  const handleWhatsApp = () => {
+    const message = `Olá, estou interessado no imóvel ${imovel?.title}.`;
+    const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    Linking.openURL(url).catch(() => alert('O WhatsApp não está instalado.'));
+  };
+
+  const handleYouTubeVideo = () => {
+    const videoUrl = 'https://www.youtube.com/watch?v=agWBxUxQfXk'; 
+    Linking.openURL(videoUrl).catch(() => alert('Erro ao abrir o vídeo.'));
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primario} />
+      </View>
+    );
+  }
+
+  if (!imovel) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Imóvel não encontrado.</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={style.container}>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Image source={imovel.image} style={styles.image} />
+      <Text style={styles.title}>{imovel.title}</Text>
+      <Text style={styles.price}>Preço: R$ {imovel.price}</Text>
+      <Text style={styles.local}>Localização: {imovel.local}</Text>
+      <Text style={styles.info}>{imovel.info}</Text>
 
-      <View style={style.header}>
-      <Link style={style.left} href="/(tabs)">
-        <AntDesign name="left" size={20} color={colors.escuro} />
-      </Link>
-
-      <TouchableOpacity style={style.heart}
-        onPress={() => setIsActive(!isActive)}>
-          {isActive ? <AntDesign name="heart" size={30} color="black" /> : <AntDesign name="hearto" size={30} color="black" />} 
+      <TouchableOpacity style={styles.button} onPress={handleWhatsApp}>
+        <Text style={styles.buttonText}>Contactar via WhatsApp</Text>
       </TouchableOpacity>
-      </View>
-
-      <View style={style.div1}>
-        <Image source={image} style={style.midia} />
-        <Text style={style.title}> {title} </Text>
-      </View>
-
-      <Text style={style.subtitle}>Valor</Text>
-      <Text style={style.price}>R$ {price} </Text>
-
-      <Text style={style.subtitle}>Localização</Text>
-      <Text style={style.text}>{local}</Text>
-
-      <Text style={style.subtitle}>Detalhes</Text>
-      <Text style={style.text}> {info} </Text>
-
-      <Text style={style.textVideo}>Vídeo da Residência</Text>
-
-      {/*video*/}
-      <View style={style.player}>
-        <YoutubeIframe
-          videoId={video}
-          width={VIDEO_WIDTH}
-          height={videoReady ? VIDEO_HEIGHT : 0}
-          onReady={() => setVideoReady(true)}
-        />
-
-        {!videoReady && <ActivityIndicator color="red" />}
-      </View>
-
-      <View style={style.barra} />
-
-      <TouchableOpacity style={style.button}
-      onPress={sendWhatsappText}>
-        <Text style={style.textButton}>Converse com o Vendedor</Text>
+      <TouchableOpacity style={styles.button} onPress={handleYouTubeVideo}>
+        <Text style={styles.buttonText}>Ver vídeo no YouTube</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const style = StyleSheet.create({
+// Mapeamento de IDs para imagens
+const imageMap: { [key: number]: any } = {
+  1: require('../../assets/images/imovel_1.jpg'),
+  2: require('../../assets/images/imovel_2.jpg'),
+  3: require('../../assets/images/imovel_3.jpg'),
+  4: require('../../assets/images/imovel_4.jpg'),
+  5: require('../../assets/images/imovel_5.jpg'),
+};
+
+const styles = StyleSheet.create({
   container: {
-    padding: SCREEN_SPACE,
+    flexGrow: 1,
+    padding: 20,
     backgroundColor: colors.bg,
   },
-
-  header:{
-    marginTop:20,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-
-  heart:{
-    alignItems:"flex-end"
-  },
-
-  left:{
-    alignItems:"flex-start"
-  },
-
-  div1: {
-    alignItems: "center",
-    justifyContent: "center",
-    margin: 20,
-  },
-
-  midia: {
-    width: "110%",
-    height: 220,
+  image: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
     borderRadius: 10,
-    marginBottom: 5,
+    marginBottom: 20,
   },
-
   title: {
-    fontWeight: "bold",
-    color: colors.title,
-    fontSize: 30,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.escuro,
+    marginBottom: 10,
   },
-
-  subtitle: {
-    color: colors.title,
-    paddingVertical: 5,
-    fontSize: 17,
-    fontWeight: "bold",
-  },
-
-  text: {
-    paddingLeft: 10,
-    fontSize: 17,
-  },
-
   price: {
-    fontSize: 17,
-    paddingLeft: 20,
-    fontWeight: "bold",
-    color: "green",
+    fontSize: 18,
+    color: colors.primario,
+    marginBottom: 10,
   },
-
-  textVideo: {
-    color: colors.title,
-    paddingVertical: 20,
-    fontSize: 23,
-    fontWeight: "bold",
-  },
-
-  barra: {
-    width: "100%",
-    height: 7,
-    backgroundColor: colors.escuro,
-    marginVertical: 20,
-    alignContent: "center",
-    alignItems: "center",
-  },
-
-  button: {
-    backgroundColor: colors.escuro,
-    width: "70%",
-    height: 50,
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    margin: 20,
-    marginBottom: 40,
-  },
-
-  textButton: {
-    color: "#fff",
+  local: {
     fontSize: 16,
-    fontWeight: "bold",
+    color: colors.escuro,
+    marginBottom: 10,
   },
-
-  player: {
-    width: "100%",
-    height: VIDEO_HEIGHT,
-    alignItems: "center",
-    justifyContent: "center",
+  info: {
+    fontSize: 16,
+    color: colors.escuro,
+    lineHeight: 22,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: colors.escuro,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: colors.primario,
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });

@@ -90,8 +90,7 @@ const imageMap: { [key: number]: any } = {
   12: require('../../assets/images/imovel_2.jpg'),
   13: require('../../assets/images/imovel_3.jpg'),
   14: require('../../assets/images/imovel_4.jpg'),
-  15: require('../../assets/images/imovel_5.jpg'),
-  // Adicione mais mapeamentos conforme necessário
+  15: require('../../assets/images/imovel_5.jpg')
 };
 
 export default function Home() {
